@@ -36,6 +36,7 @@ public class OzPlaysChess extends PApplet {
 	private String specMove;//Special move currently being performed
 	private int specProg;//Progress through special move
 	private int intro;
+	private Piece taken;//Last Piece Taken
 	
 	//Oz Moving Piece
 	//Tracking player move
@@ -239,6 +240,7 @@ public class OzPlaysChess extends PApplet {
 				}
 				else{//Piece in space
 					lastDest = findPiece(xEnd,yEnd).getTeam();
+					taken = findPiece(xEnd,yEnd);
 					pieces.remove(findPiece(xEnd,yEnd));
 				}
 				held.setCoor(xEnd, yEnd);
@@ -348,6 +350,7 @@ public class OzPlaysChess extends PApplet {
 	}
 	
 	public void genericMove() {
+
 		if(moveProgress==-1) {//Piece not in motion
 			state= "pieceMove";
 			currDialog="";
@@ -379,6 +382,7 @@ public class OzPlaysChess extends PApplet {
 		}
 		else if(moveProgress==moveSpeed) {//Finished moving	
 			if(findPiece(xEndOz,yEndOz)!=null) {//Piece already present
+				taken = findPiece(xEndOz,yEndOz);
 				pieces.remove(findPiece(xEndOz,yEndOz));
 			}
 			pieces.add(new Piece(moving.getTeam(),moving.getType(),xEndOz,yEndOz,moving.getImage()));
@@ -396,7 +400,18 @@ public class OzPlaysChess extends PApplet {
 			moveProgress ++;
 		}
 	}
-///////////////////////////////Initial Setup/////////////////////////////////////////////////
+
+	public boolean hasPiece(String type) {
+		for(Piece iter:pieces) {
+			if(iter.getType().equalsIgnoreCase(type)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	
+	///////////////////////////////Initial Setup/////////////////////////////////////////////////
 	public void initializePieces() {
 		numTurns = 0;
 		pieces = new ArrayList<Piece>();
@@ -527,13 +542,14 @@ public class OzPlaysChess extends PApplet {
 		
 		
 		spec = new ArrayList<String>();//Special responses
-		spec.add("laser");
+		/*spec.add("laser");
 		spec.add("terra");
 		spec.add("toTheLeft");
 		spec.add("reinforcements");
 		spec.add("lightsOut");
 		spec.add("firecracker");
-		spec.add("moveBack");
+		spec.add("moveBack");*/
+		spec.add("kingMe");
 		//spec.add("tide");
 		/*
 		spec.add("kingMe");
@@ -606,7 +622,16 @@ public class OzPlaysChess extends PApplet {
 		
 		// 1) Respond to player move
 		if(lastTeam.equalsIgnoreCase("player")&&lastDest.equalsIgnoreCase("oz")) {//Player piece takes Oz piece
-			if(ppto.isEmpty()) {
+			boolean hasQueen=false;
+			boolean hasKing = false;
+			if(hasPiece("ozKing"))hasKing=true;
+			if(hasPiece("ozQueen"))hasQueen=true;
+			
+			if(taken.getType().equalsIgnoreCase("ozKing")&& hasQueen && !hasKing) {
+				ozEmote = findNamedImage("glee");
+				currDialog = "Oz: Good thing this is a Matriarchy!";
+			}
+			else if(ppto.isEmpty()) {
 				 genericResponse();
 			}
 			else {
@@ -906,9 +931,6 @@ public class OzPlaysChess extends PApplet {
 			case "terra":
 				terra();
 				break;
-			case "kingMe":
-			
-				break;
 			case "firecracker":
 				fireCracker();
 				break;
@@ -944,6 +966,9 @@ public class OzPlaysChess extends PApplet {
 				break;
 			case "defeat":
 				defeat();
+				break;
+			case "kingMe":
+				kingMe();
 				break;
 			default:
 				System.out.println("Cannot perform unknow special move:"+specMove);
@@ -1485,6 +1510,79 @@ public class OzPlaysChess extends PApplet {
 			}
 			initializePieces();
 			specProg--;
+			break;
+		case 1://End Special Move
+			ozEmote = findNamedImage("smile");
+			currDialog=null;
+			state="ozTurn";
+			specProg--;
+			break;
+		case 0:
+			specProg=4;//set to start value////////////////////////
+			break;
+		default:
+			System.out.println("No case in special move \"specialTemplate\" for specProg"+specProg);
+			break;
+		}
+	}
+	
+	
+	public boolean ozOnlyHasKing() {
+		for(Piece iter:pieces) {
+			if(iter.getTeam().equalsIgnoreCase("oz")) {//Piece Belongs to Oz
+				if(!(iter.getType().equalsIgnoreCase("ozKing"))) {//Piece is not a king
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+		
+	public void kingMe(){
+		switch(specProg) {
+		case 4:
+			ozEmote = findNamedImage("thinking");
+			currDialog = "Oz: I think I have a good idea for a move...";
+			specProg--;
+			break;
+		case 3:
+			try {
+				TimeUnit.SECONDS.sleep(3);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			ozEmote = findNamedImage("beam");
+			currDialog = "Oz: King Me";
+			specProg--;
+			break;
+		case 2:
+			try {
+				TimeUnit.MILLISECONDS.sleep(500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			if(ozOnlyHasKing()) {
+				specProg--;
+			}
+			else {
+				int tempx=0;
+				int tempy=0;
+				Piece toReplace=null;
+				for(Piece iter:pieces) {
+					if(iter.getTeam().equalsIgnoreCase("oz")) {//Piece Belongs to Oz
+						if(!(iter.getType().equalsIgnoreCase("ozKing"))) {//Piece is not a king
+							tempx=iter.getX();
+							tempy=iter.getY();
+							toReplace=iter;
+							break;
+						}
+					}
+				}
+				if(toReplace!=null) {
+					pieces.remove(toReplace);
+					addPiece("oz","ozKing",tempx,tempy);
+				}
+			}
 			break;
 		case 1://End Special Move
 			ozEmote = findNamedImage("smile");
