@@ -17,7 +17,6 @@ public class OzPlaysChess extends PApplet {
 	private ArrayList<namedImage> ims;
 	private Random r;
 	private int rRes;
-	private char[] letters;
 		
 	//Tracking player move
 	private int xStart;//Starting x of held piece
@@ -30,7 +29,6 @@ public class OzPlaysChess extends PApplet {
 	
 	//Game State
 	private ArrayList<Piece>pieces;
-	private int numTurns;
 	private int ozScore;
 	private int playerScore;
 	private String specMove;//Special move currently being performed
@@ -112,12 +110,10 @@ public class OzPlaysChess extends PApplet {
 		ozEmote = findNamedImage("smile");
 		r = new Random();
 		specProg = 0;
-		letters= new char[] {'A','B','C','D','E','F','G','H'};
 		intro =0;
 		moveSpeed=100;//Speed at which pieces move during Oz's turn
 		moveProgress =-1;
 		
-		numTurns=0;
 		ozScore=0;
 		playerScore =0;
 		
@@ -391,7 +387,6 @@ public class OzPlaysChess extends PApplet {
 			pieces.add(new Piece(moving.getTeam(),moving.getType(),xEndOz,yEndOz,moving.getImage()));
 			//Cleanup
 			moveProgress=-1;
-			numTurns++;
 			//Verbalize
 			//String role = moving.getType().replace("player","");
 			//role = role.replace("oz", "");
@@ -416,7 +411,6 @@ public class OzPlaysChess extends PApplet {
 	
 	///////////////////////////////Initial Setup/////////////////////////////////////////////////
 	public void initializePieces() {
-		numTurns = 0;
 		pieces = new ArrayList<Piece>();
 		addPiece("oz","ozPawn",0,1);
 		addPiece("oz","ozPawn",1,1);
@@ -748,7 +742,6 @@ public class OzPlaysChess extends PApplet {
 			else {//[false] select basic move
 				genericMove();
 			}			
-			numTurns++;
 		}
 		else {//SpecProg <0
 			System.out.println("Cannot Use Specprog value below 0: "+specProg);
