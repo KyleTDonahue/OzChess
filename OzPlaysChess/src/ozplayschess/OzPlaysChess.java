@@ -167,7 +167,10 @@ public class OzPlaysChess extends PApplet {
 			ozTurn();
 		}
 		else if(state.equalsIgnoreCase("playerTurn")) {
-			if(!mousePressed && held!=null) {//Check if mouse was released offscreen
+			if(pieces.isEmpty()&&held==null) {//No More Pieces
+				state="ozTurn";//Handled in OzTurn
+			}
+			else if(!mousePressed && held!=null) {//Check if mouse was released offscreen
 				if(!(lastDest.equalsIgnoreCase("ozFrame"))) {
 					lastTeam=held.getTeam();
 					lastDest="Off";
@@ -473,7 +476,7 @@ public class OzPlaysChess extends PApplet {
 		potp.add(new Dialog("ponder","Oz: The white pieces are yours right?"));
 		
 		pptp= new ArrayList<Dialog>();//Player takes player piece
-		pptp.add(new Dialog("concern","Oz: I see you found my spy"));
+		pptp.add(new Dialog("concern","Oz: I see you found my spy..."));
 		pptp.add(new Dialog("ponder","Oz: That's part of some bigger plan I'm sure..."));
 		pptp.add(new Dialog("confused","Oz: You know that was your piece right?"));
 		pptp.add(new Dialog("confused","Oz: Are you sure you know the rules to this?"));
@@ -542,25 +545,20 @@ public class OzPlaysChess extends PApplet {
 		
 		
 		spec = new ArrayList<String>();//Special responses
-		/*spec.add("laser");
+		spec.add("laser");
 		spec.add("terra");
 		spec.add("toTheLeft");
 		spec.add("reinforcements");
 		spec.add("lightsOut");
 		spec.add("firecracker");
-		spec.add("moveBack");*/
+		spec.add("moveBack");
 		spec.add("kingMe");
-		//spec.add("tide");
-		/*
-		spec.add("kingMe");
-		spec.add("chocolate");
-		spec.add("leftFootBlue");
-		spec.add("allIn");
-		spec.add("combo");//Take a bunch of turns in a row
+		spec.add("tide");
+		
+		//spec.add("leftFootBlue");
+		//spec.add("allIn");
+		//spec.add("combo");//Take a bunch of turns in a row
 			//add version of genericMove that takes in a piece parameter?
-		spec.add("sinkhole");*/
-		
-		
 	}
 	
 	
@@ -571,7 +569,10 @@ public class OzPlaysChess extends PApplet {
 			PImage temp;
 			temp = loadImage(gamePath+"\\images\\board.png");
 			temp.resize((int)(width*0.5f), (int)(height*0.8f));
-			ims.add(new namedImage("board",temp));			
+			ims.add(new namedImage("board",temp));	
+			temp = loadImage(gamePath+"\\images\\tide.png");
+			temp.resize((int)(width*0.5f), (int)(height*0.8f));
+			ims.add(new namedImage("tideIm",temp));	
 			
 			addOzIm("beam");
 			addOzIm("charge");
@@ -717,18 +718,17 @@ public class OzPlaysChess extends PApplet {
 		//	[false] select basic move
 		// 6) Increment numTurns
 			
-		if(pieces.size()==1) {// 1) Check if board empty or only 1 piece
-			currDialog = "Oz: We can keep playing with just 1 piece right?";
-		}
-		else if(pieces.isEmpty()) {//No More Pieces
-			currDialog = "Oz: Well, looks like we're out of pieces. Would you like to play again?";
+		if(pieces.isEmpty()) {//No More Pieces
+			if(!specMove.equalsIgnoreCase("outofPieces")) {//If not already in progress
+				specMove="outofPieces";
+				specProg=0;
+			}
+			outofPieces();
 			return;
 		}
-		
-		if(specProg>0) {// 2) Check for carryover move
+		else if(specProg>0) {// 2) Check for carryover move
 			specialMove();
 		}
-		
 		else if(specProg==0) {//No special move in progress
 			if(specMove !=null) {
 				specMove=null;
@@ -753,11 +753,6 @@ public class OzPlaysChess extends PApplet {
 		else {//SpecProg <0
 			System.out.println("Cannot Use Specprog value below 0: "+specProg);
 		}
-		
-		
-		
-		
-		
 	}
 	
 	public void intro() {
@@ -798,14 +793,10 @@ public class OzPlaysChess extends PApplet {
 			}
 			if(moving!=null) {//draw moving
 				try {
-					TimeUnit.MILLISECONDS.sleep(6);
+					TimeUnit.MILLISECONDS.sleep(5);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
-				//System.out.println("moveProgress: "+moveProgress);
-				//System.out.println("xStartOz: "+xStartOz);
-				//System.out.println("x: "+((xStartOz*width*0.0625f)+(width*0.1f)+(xInc*moveProgress)));
-				//System.out.println("y: "+((yStartOz*height*0.1f)+(yInc*moveProgress)));
 				image(moving.getImage(),
 						 (xStartOz*width*0.0625f)+(width*0.1f)+(xInc*moveProgress),
 						 (yStartOz*height*0.1f)+(yInc*moveProgress));
@@ -860,7 +851,7 @@ public class OzPlaysChess extends PApplet {
 		textAlign(CENTER,CENTER);
 		text("Declare\nVictory",width*0.67f,height*0.69f);
 		text("Admit\nDefeat",width*0.83f,height*0.69f);
-		text("Oz: "+ozScore+"    You: "+playerScore,width*0.75f,height*0.61f);
+		text("You: "+playerScore+"    Oz: "+ozScore,width*0.75f,height*0.61f);
 		
 		
 		
@@ -873,10 +864,8 @@ public class OzPlaysChess extends PApplet {
 		//BoardEffects////////////////////////////////////////////////////////////////////////////////
 		
 		//Tide
-		if(tide>0) {
-			fill(0,0,200);
-			rect(width*0.1f,0,(tide*width*0.0625f),height*0.8f);//Replace with image
-			
+		if(!tideState.equalsIgnoreCase("off")) {
+			image(findNamedImage("tideIm").getImage(),width*(-0.38f)+(tide*width*0.059f),0f);
 			//Remove Caught Pieces
 			for(int p=0;p<pieces.size();p++) {
 				if(pieces.get(p).getX()<=tide-1) {//change to < later////////////////////////////////////////
@@ -918,6 +907,9 @@ public class OzPlaysChess extends PApplet {
 		fill(0,0,0);
 		rect(0,0,width*0.1f,height);//left bar
 		rect(width*0.9f,0,width*0.1f,height);//right bar
+		
+		
+		
 	}
 	
 ////////////////////////////////////////////SpecialMoves//////////////////////////////////////////////
@@ -1396,20 +1388,23 @@ public class OzPlaysChess extends PApplet {
 				e.printStackTrace();
 			}
 			specProg--;
+			genericMove();
 			break;
-		case 2:
+		case 2:			
 			if(tideState.equalsIgnoreCase("in")) {
 				if(tide>=4) {
 					tideState="out";
 				}
-				if(r.nextDouble()>0.3){
+				if(tide>=1) {
+					tide++;
+				}
+				else if(r.nextDouble()>0.3){
 					tide++;
 				}
 				else {
 					tide--;
 				}
 				genericMove();
-				//state="playerTurn";/////////////Will this work?
 			}
 			if(tideState.equalsIgnoreCase("out")){
 				if(tide<=0) {
@@ -1423,7 +1418,6 @@ public class OzPlaysChess extends PApplet {
 					tide++;
 				}
 				genericMove();
-				//state="playerTurn";/////////////Will this work?
 			}
 			
 			break;
@@ -1466,6 +1460,7 @@ public class OzPlaysChess extends PApplet {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
+			tideState="off";
 			initializePieces();
 			specProg--;
 			break;
@@ -1522,6 +1517,51 @@ public class OzPlaysChess extends PApplet {
 			break;
 		default:
 			System.out.println("No case in special move \"specialTemplate\" for specProg"+specProg);
+			break;
+		}
+	}
+	
+	public void outofPieces(){
+		switch(specProg) {
+		case 3:
+			try {
+				TimeUnit.SECONDS.sleep(2);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			ozEmote = findNamedImage("concern");
+			currDialog = "Oz: Looks like we're out of pieces.";
+			showLasers=false;
+			specProg--;
+			break;
+		case 2:
+			try {
+				TimeUnit.SECONDS.sleep(2);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			ozEmote = findNamedImage("beam");
+			currDialog="Let's play again!";
+			specProg--;
+			break;
+		case 1:
+			try {
+				TimeUnit.SECONDS.sleep(2);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			tideState="off";
+			initializePieces();
+			ozEmote = findNamedImage("smile");
+			currDialog=null;
+			state="ozTurn";
+			specProg--;
+			break;
+		case 0:
+			specProg=3;//set to start value////////////////////////
+			break;
+		default:
+			System.out.println("No case in special move \"outofPieces\" for specProg "+specProg);
 			break;
 		}
 	}
